@@ -1,0 +1,3 @@
+exclude lifd/excluded_module
+
+include README.md
