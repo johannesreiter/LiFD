@@ -7,7 +7,7 @@ import csv
 from subprocess import Popen, PIPE
 
 from lifd.predictors.predictor import Predictor
-from lifd.settings import HOME_DIR, MDL_DIR
+from lifd.settings import HOME_DIR, PRD_DIR
 from lifd.utils import add_column
 from lifd.utils import FATHMM_KEY_COL, FUNC_COL
 
@@ -16,14 +16,13 @@ __date__ = 'Jan 26, 2019'
 
 
 # get logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 
 class FatHMM(Predictor):
 
     # FatHMM settings
-    PATH = os.path.join(MDL_DIR, 'fathmm', 'cgi-bin')
+    PATH = os.path.join(PRD_DIR, 'fathmm', 'cgi-bin')
     COMMAND = 'python3 fathmm.py -w Cancer {} {}' # 'python3 fathmm.py -w Cancer {} {}' if updating external fathmm to python 3
     INPUT_SUFFIX = '_fathmm_input.txt'
     OUTPUT_SUFFIX = '_fathmm_output.tsv'

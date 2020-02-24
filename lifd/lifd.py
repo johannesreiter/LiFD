@@ -11,13 +11,29 @@ from lifd.utils import apply_multitest_correction, NT_VAR_COL, PT_VAR_COL, FUNC_
 from lifd.settings import DR_LIST_FP
 from lifd.version import __version__
 
-# get logger
-logger = logging.getLogger(__name__)
+# create logger
+logger = logging.getLogger('lifd')
+logger.propagate = False
+# logger = logging.getLogger('lifd.{}'.format(__name__))
+# create file handler which logs even debug messages
+fh = logging.FileHandler('lifd.log')
+fh.setLevel(logging.DEBUG)
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s %(name)s:%(lineno)d %(levelname)s: %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+# add the handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 try:    # check if varcode and pyensembl is available (necessary for Windows)
     from varcode import Variant  # https://github.com/hammerlab/varcode
     # from pyensembl import ensembl_grch37
     from lifd.mutation_effects import get_mutation_details, annotate_effects, MutationEffects, VAR_EFFECT_COLS
+
     logger.info('VarCode is used for mutation effect prediction.')
 
 except ImportError:
@@ -286,7 +302,7 @@ class LiFD:
                     f'{LIFD_SUP_COL}: >=1 if mutation is a known oncogenic variant or otherwise the '
                     + 'fraction of functionality supporting tools',
                     f'{LIFD1_SUP_COL}: number of databases listing variant as oncogenic',
-                    f'{LIFD2_SUP_TUPLE_COL}: tuple: first entry denotes number of tools predicting driver mutation'
+                    f'{LIFD2_SUP_TUPLE_COL}: tuple: first entry denotes number of tools predicting driver mutation '
                     + 'second entry denotes the number of tools that produced a valid prediction',
                     ]
                 var_df[output_cols].to_excel(
@@ -307,7 +323,7 @@ class LiFD:
                 writer.save()
                 writer.close()
                 logger.info('Exported {} annotated variants ({} LiFD) to {}.'.format(
-                    len(var_df), len(var_df[var_df[LIFD_COL]]), output_fp))
+                    len(var_df), len(var_df[var_df[LIFD_COL]]), os.path.abspath(output_fp)))
             else:
                 logger.error('Could not export LiFD results because given filename did not end with .xlsx: '
                              + str(export_fn))

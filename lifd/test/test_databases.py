@@ -52,13 +52,27 @@ HOTSPOTS_MEM_STRING_CSV_v2 = (
 )
 
 ONCOKB_MEM_STRING = (
-    'Isoform\tRefSeq\tEntrez Gene ID\tHugo Symbol\tAlteration\tProtein Change\tOncogenicity\tMutation Effect\t'
+    'Isoform\tRefSeq\tEntrez Gene ID\tgene\tvariant\tProtein Change\toncogenicity\tMutation Effect\t'
     'PMIDs for Mutation Effect\tAbstracts for Mutation Effect\n'
     'ENST00000256078\tNM_033360.2\t3845\tKRAS\tG12V\tG12V\tOncogenic\tGain-of-function\t'
     '"20516123, 20949621, 25359494, 20570890, 12957286, 20147967"\n'
     'ENST00000269305\tNM_000546.5\t7157\tTP53\tG266R\tG266R\tLikely Oncogenic\tLoss-of-function\t16827139\n'
     'ENST00000111111\tNM_000111.1\t0000\tABCD\tG266R\tG266R\tLikely Neutral\tLoss-of-function\t12345678\n'
     'ENST00000111110\tNM_000111.0\t0001\tABCE\tG266R\tG266R\tInconclusive\tLoss-of-function\t12345678\n'
+)
+
+COSMIC_MEM_STRING_v90 = (
+    'Gene name	Accession Number	Gene CDS length	HGNC ID	Sample name	ID_sample	ID_tumour	Primary site	Site subtype 1	Site subtype 2	Site subtype 3	Primary histology	Histology subtype 1	Histology subtype 2	Histology subtype 3	Genome-wide screen	MUTATION_ID	GENOMIC_MUTATION_ID	LEGACY_MUTATION_ID	Mutation CDS	Mutation AA	Mutation Description	Mutation zygosity	LOH	GRCh	Mutation genome position	Mutation strand	SNP	FATHMM prediction	FATHMM score	Mutation somatic status	Pubmed_PMID	ID_STUDY	Sample Type	Tumour origin	Age\n'
+    + 'KRAS\tENST00000556131\tENST00000556131.1\t1696\t6407\t8047865\t2196574\t2064852\tpancreas\tNS\tNS\tNS\t'
+      'carcinoma\tductal_carcinoma\tNS\tNS\ty\t74245015\tCOSV55497419\tCOSM520\tc.35G>T\tp.G12V\t'
+      'Substitution - Missense\t\t\t37\t12:25398284-25398284\t+\tn\tPATHOGENIC\t0.98367\tConfirmed somatic variant\t\t'
+      '328\tNS\tNS\t\n'
+    + 'TP53\tENST00000420246\tENST00000420246.2\t2653\t11998\tTCGA-25-1329-01\t1475000\t1398699\tovary\tNS\tNS\tNS\tcarcinoma\tserous_carcinoma\tNS\tNS\ty\t45887613\tCOSV52832767\tCOSM4336311\tc.140del\tp.P47Rfs*76\tDeletion - Frameshift\thet\t\t37\t17:7579550-7579550\t+\tn\t\t\tConfirmed somatic variant\t21720365\t331\tNS\tprimary\t76\n'
+    # mutation on negative strand
+    # long deletion
+    # insertion
+    # insertion on negative strand to be complemented
+    # longer inseration on negative strand to be complemented
 )
 
 COSMIC_MEM_STRING = (
@@ -74,6 +88,9 @@ COSMIC_MEM_STRING = (
     + 'KRAS\tENST00000311936\t567\t6407\tIPMN26\t16916431\t1599910\tpancreas\tNS\tNS\tNS\tother\tadenoma\t'
       'NS\tNS\ty\tCOSM518\tc.34G>C\tp.G12R\tSubstitution - Missense\t\tu\t37\t12:25398285-25398285\t-\tn\tPATHOGENIC\t'
       '.98468\tConfirmed somatic variant\t22158988\tNS\tNS\t\n'
+    + 'KRAS\tENST00000311936\t567\t6407\tI2L-P9-Tumor-Organoid\t2433492\t2296373\tlarge_intestine\tcolon\tascending\t'
+      'NS\tcarcinoma\tadenocarcinoma\tNS\tNS\ty\tCOSM520\tc.35G>T\tp.G12V\tSubstitution - Missense\thet\tu\t37\t'
+      '12:25398284-25398284\t-\tn\tPATHOGENIC\t.98367\tConfirmed somatic variant\t25957691\t\tNS\tNS\t64\n'
     + 'PTEN\tENST00000371953\t1212\t9588\tPD3989a\t1280816\t1192107\tbreast\tNS\tNS\tNS\tcarcinoma\tductal_carcinoma\t' 
       'NS\tNS\ty\tCOSM4898\tc.950_953delTACT\tp.T319fs*1\tDeletion - Frameshift\t\tu\t37\t10:89720799-89720802\t+\t' 
       '\t\t\tConfirmed somatic variant\t27135926\tNS\tprimary\n'
@@ -172,15 +189,16 @@ class DatabaseTest(unittest.TestCase):
     def test_CosmicDatabase(self):
         # mirroring mini hotspot file instead of mocking
         cosmic_db = CosmicDB(self.cosmic_io_tsv, lazy_loading=False)
-
+        # print(cosmic_db.db_df)
         # does source filename get assigned correctly
         self.assertEqual(cosmic_db.db_source, self.cosmic_io_tsv)
 
         # was the TSV file read correctly and did the neutral variants get removed?
         self.assertIsNotNone(cosmic_db.db_df)
-        self.assertEqual((9, 2), cosmic_db.db_df.shape)
+        self.assertEqual((10, 2), cosmic_db.db_df.shape)
 
         # test formatting of key when mutations are on negative strand
+        # 12__25398285__G__C
         nt_var_key = '12__25398285__C__G'
         self.assertEqual(2, cosmic_db.in_database(nt_var_key, None))
 

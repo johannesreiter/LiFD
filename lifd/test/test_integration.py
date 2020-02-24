@@ -57,13 +57,13 @@ class IntegrationTest(unittest.TestCase):
 
         # testing OncoKB integration
         oncokb_db = OncoKBDB(ONCOKB_ALLVARS_FP, lazy_loading=False)
-        self.assertGreaterEqual(3787, oncokb_db.db_df.shape[0])
+        self.assertLessEqual(3920, oncokb_db.db_df.shape[0])
         self.assertEqual(10, oncokb_db.db_df.shape[1])
 
         # testing CGI integration
         cgi_db = CgiDB(ONCOGENIC_VARS_FP, lazy_loading=False)
-        self.assertGreaterEqual(5601, len(cgi_db.db_df))
-        self.assertEqual(9, cgi_db.db_df.shape[1])
+        self.assertLessEqual(5601, len(cgi_db.db_df))
+        self.assertEqual(9, len(cgi_db.db_df))
 
         nt_var_key = '12__25398284__G__A'
         pt_var_key = 'KRAS__G12V'

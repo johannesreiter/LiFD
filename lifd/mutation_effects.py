@@ -16,9 +16,8 @@ __author__ = 'Johannes REITER'
 __date__ = 'March 2, 2017'
 
 
-# get logger for application
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+# get logger
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 GENE_SYMBOL_COL = 'GeneSymbol'
 TRANSCRIPT_ID_COL = 'Transcript_ID'

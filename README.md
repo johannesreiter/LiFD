@@ -17,13 +17,14 @@ Default reference genome is hg19. Only some of the pooled tools support hg20.
 
 ### <a name="releases"> Releases
 * LiFD 0.1.0 2019-08-27: Initial release.
+* LiFD 0.1.1 2020-02-24: Integrated OncoKB upgrade to curl API. Added option to run LiFD from the command line.
 
 ### <a name="installation"> Installation and Setup
 1. Install Python 3.6 ([https://www.python.org/downloads](https://www.python.org/downloads)). Check installation with ```which python3.6```. Load Python 3.6 with ```ml python/3.6``` if installing LiFD onto a remote server/cluster.
 2. Install required packages with ```pip install numpy scipy pandas statsmodels xlrd openpyxl xlsxwriter```; NumPy ([http://www.numpy.org](http://www.numpy.org)), SciPy ([http://www.numpy.org](http://www.numpy.org)), pandas ([http://pandas.pydata.org/](http://pandas.pydata.org/)).
 3. Install PyEnsembl (https://github.com/openvax/pyensembl) and Varcode (https://github.com/openvax/varcode), used for mutation effect annotation, with ```pip install pyensembl varcode```. Run ```pyensembl install --release 75 --species human``` to get the latest genome database for hg19/GRCh37.
-4. Open a terminal and clone the repository from GitHub with ```git clone https://github.com/johannesreiter/LiFD_dev.git```
-and install LiFD to your python environment by running ```pip3.6 install -e <LiFD_dev_directory>```
+4. Open a terminal and clone the repository from GitHub with ```git clone https://github.com/johannesreiter/LiFD.git```
+and install LiFD to your python environment by running ```pip3.6 install -e <LiFD_directory>```
 5. Test installation by opening a python shell ```python3.6``` and execute these commands ```import lifd``` and ```lifd.__version__```. As output you should get your current LiFD version. Exit the shell with ```exit()```.
 
 ### <a name="run_simple"> Running LiFD when functional annotation is provided
@@ -42,15 +43,50 @@ Default settings can be configured in ```lifd/settings.py```
   - FATHMM: Requires column ```FATHMM_score```
   - VEP: Requires column ```VEP_impact```
   
-For a full example see the ipython notebook ```examples/intraprimary_heterogeneity_analysis.ipynb``` or ```examples/intermetastatic_heterogeneity_analysis.ipynb```
+  
+##### Usage: 
+```shell
+$ lifd -i <INPUT_FILE> [--driver_genes=<driver_gene_file>] [--verbose] [--hotspots] [--oncokb] [--cosmic] [--oncogenic] [--vep] [--cravat] [--fathmm] [--candra] [--cgi] [--cgi_username=<YOUR CGI USERNAME>] [--cgi_token=<YOUR CGI TOKEN>]
+```
+
+##### Parameters:
+- ```-i <input_file>```: Path to input file (types: CSV | TSV | XLSX)
+- ```--driver_genes=<driver_gene_file>``` Path to csv-file with driver genes
+- ```--verbose```: Run LiFD in DEBUG logging level.
+- ```--hotspots```: Annotate with Cancer Hotspots from Chang et al, Cancer Discovery 2018.
+- ```--oncokb```: Annotate with oncogenic mutations (OncoKB) from Chakravarty et al., JCO PO 2017.
+- ```--cosmic```: Annotate with COSMIC (Tate et al., Nucleic Acids Res 2019).
+- ```--oncogenic```: Annotate with catalog of validated oncogenic mutations from Tamborero et al, Genome Medicine 2018.
+- ```--vep```: Annotate with VEP.
+- ```--cravat```: Annotate with Cravat/ChasmPLUS.
+- ```--fathmm```: Annotate with FatHMM.
+- ```--candra```: Annotate with Candra.
+- ```--cgi```: Annotate with CGI which also requires the following two arguments with a username and a token
+- ```--cgi_username=<YOUR CGI USERNAME>```: your CGI username to connect to the CGI interface
+- ```--cgi_token=<YOUR CGI TOKEN>```: your CGI token to connect to the CGI interface
+
+
+##### Example:
+```shell
+$ lifd -i lifd_examples/example_variants.xlsx --hotspots --oncokb --cosmic --oncogenic --vep --cravat --cgi --fathmm --candra
+```
+For an ipython notebook example see ```lifd_examples/intraprimary_heterogeneity_analysis.ipynb``` or ```lifd_examples/intermetastatic_heterogeneity_analysis.ipynb```
 
 
 ### <a name="run_complex"> Running LiFD when functional annotation is missing
 To automatically invoke the various methods, various dependencies need to be configured which can be very cumbersome.
-Download the following databases into a directory and set variable ```DB_DIR``` with path to the databases in ```lifd/settings.py``` (e.g., ```/src/lifd/databases```):
-  - OncoKB v1.21 ([https://github.com/oncokb/oncokb-public/blob/master/data/v1.21/allAnnotatedVariants.txt](https://github.com/oncokb/oncokb-public/blob/master/data/v1.21/allAnnotatedVariants.txt)); find all versions here ([https://github.com/oncokb/oncokb-public/tree/master/data](https://github.com/oncokb/oncokb-public/tree/master/data)). Set variable ```ONCOKB_ALLVARS_FP``` with path to downloaded file in ```lifd/settings.py``` accordingly.
-  - Cancer Hotspots V2 ([https://www.cancerhotspots.org/#/download](https://www.cancerhotspots.org/#/download)). Set variable ```HOTSPOTS_FP``` with path to downloaded file in ```lifd/settings.py``` accordingly.
-  - COSMIC Mutation Data Genome Screens v89 ([https://cancer.sanger.ac.uk/cosmic/download?genome=37](https://cancer.sanger.ac.uk/cosmic/download?genome=37)). Set variable ```COSMIC_VARS_FP``` with path to downloaded file in ```lifd/settings.py``` accordingly. Note that in the original study, version 1 of the hotspots were used.
+
+LiFD takes as input either a CSV, TSV, or an Excel file with the following required columns: ```Chromosome```, ```StartPosition```, ```EndPosition```, ```ReferenceAllele```, and ```AlternateAllele```.
+See ```lifd_examples/example_variants.xlsx``` for format.
+Some predictors also require a ```CancerType``` column according to the TCGA abbreviations ([https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables/tcga-study-abbreviations](https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables/tcga-study-abbreviations)). 
+If boolean column ```MaybeFunctional``` (denoting whether variant is a nonsynonymous or splice-site mutation) is not provided, then VarCode will be invoked.
+For an ipython notebook example see ```lifd_examples/lifd_examples.ipynb```.
+To run LiFD from the command line see above.
+
+Download the following databases into a directory and set variable ```DB_DIR``` with path to the databases in ```lifd/settings.py```:
+  - OncoKB v1.21: apply to get access to their database at ([https://www.oncokb.org/](https://www.oncokb.org/)); previously the data was freely available ([https://github.com/oncokb/oncokb-public/tree/master/data](https://github.com/oncokb/oncokb-public/tree/master/data)). Set variable ```ONCOKB_ALLVARS_FP``` with path to downloaded file in ```lifd/settings.py``` accordingly.
+  - Cancer Hotspots V2 ([https://www.cancerhotspots.org/#/download](https://www.cancerhotspots.org/#/download)). Set variable ```HOTSPOTS_FP``` with path to downloaded file in ```lifd/settings.py``` accordingly. Note that in the original study, version 1 of the hotspots were used.
+  - COSMIC Mutation Data Genome Screens v89 ([https://cancer.sanger.ac.uk/cosmic/download?genome=37](https://cancer.sanger.ac.uk/cosmic/download?genome=37)). Set variable ```COSMIC_VARS_FP``` with path to downloaded file in ```lifd/settings.py``` accordingly. Note that in COSMIC release v90 many things were changed and the strand information is now always positive inconsistent with previous releases. Release v91 will fix this issue again.
   - CGI Catalog of Validated Oncogenic Mutations ([https://www.cancergenomeinterpreter.org/mutations](https://www.cancergenomeinterpreter.org/mutations)). Set variable ```ONCOGENIC_VARS_FP``` with path to downloaded file in ```lifd/settings.py``` accordingly.
 
 Install Pysam (https://github.com/pysam-developers/pysam), used to find reference alleles for indels, with ```pip3.6 install pysam```. Download a fasta file for hg19 (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz) into the database directory.
@@ -58,7 +94,7 @@ Install Pysam (https://github.com/pysam-developers/pysam), used to find referenc
 Setup the predictive tools (and their cancer-specific models) to create annotations for LiFD automatically:
   - CanDrA.v+ ([https://bioinformatics.mdanderson.org/main/CanDrA](https://bioinformatics.mdanderson.org/main/CanDrA))
   - CRAVAT and CHASMplus ([https://chasmplus.readthedocs.io/en/latest/](https://chasmplus.readthedocs.io/en/latest/))
-  - CGI is a web tool and no installation is required. However, a login needs to be created at ([https://www.cancergenomeinterpreter.org](https://www.cancergenomeinterpreter.org)). A file ```cgi_settings.py``` containing the credentials is expected at ```src/lifd/cgi_settings.py``` in the following format:
+  - CGI is a web tool and no installation is required. However, a login needs to be created at ([https://www.cancergenomeinterpreter.org](https://www.cancergenomeinterpreter.org)). A file ```cgi_settings.py``` containing the credentials is expected at ```lifd/cgi_settings.py``` in the following format:
     ```
     CGI_USER_ID = '<YOUR USERNAME>'
     CGI_TOKEN = '<YOUR CGI TOKEN>'
@@ -80,7 +116,7 @@ Setup the predictive tools (and their cancer-specific models) to create annotati
         ```
         Load MariaDB with ```ml system mariadb```.
         If using MySQL, start server with ```mysql.server start```
-    - Check the line ```COMMAND = 'python3 fathmm.py -w Cancer {} {}'``` in ```lifd/databases/fathmm.py``` and correct the line to reflect the version of Python. Note that a separate installation of Python 2 will be necessary to run fathmm.py if the above corrections are not made.
+    - Check the line ```COMMAND = 'python3 fathmm.py -w Cancer {} {}'``` in ```lifd/predictors/fathmm.py``` and correct the line to reflect the version of Python. Note that a separate installation of Python 2 will be necessary to run fathmm.py if the above corrections are not made.
     - As written on the FATHMM installation page, place information about the user, database, etc. in ```config.ini``` file as follows:
     ```
     [DATABASE]
@@ -98,12 +134,6 @@ Setup the predictive tools (and their cancer-specific models) to create annotati
     - Note that some dependencies of various Perl packages may fail during either installation of the requirements or the setup, such as ```Test::Pod::Coverage``` or ```XML::DOM::XPath```; keep track of these packages and install them separately, possibly using ```--force``` argument to circumnavigate outdated tests. Dependencies of dependencies may also fail, in which case this process should be repeated.
     - Note that many packages may already exist on a remote server. Load some of the packages with ```ml libgd``` and ```ml biology htslib```.
 
-
-LiFD takes as input either a CSV or an Excel file with the following required columns: ```Chromosome```, ```StartPosition```, ```EndPosition```, ```ReferenceAllele```, and ```AlternateAllele```.
-See ```examples/example_variants.xlsx``` for format.
-Some predictors also require a ```CancerType``` column according to the TCGA abbreviations ([https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables/tcga-study-abbreviations](https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables/tcga-study-abbreviations)). 
-If boolean column ```MaybeFunctional``` (denoting whether variant is a nonsynonymous or splice-site mutation) is not provided, then VarCode will be invoked.
-For a full example see the ipython notebook ```examples/lifd_examples.ipynb```.
 
 
 ========

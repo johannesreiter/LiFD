@@ -9,7 +9,7 @@ import pandas as pd
 from lifd.settings import OUTPUT_DIR
 
 # get logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 NAN = float('nan')
 

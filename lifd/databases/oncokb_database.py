@@ -1,16 +1,19 @@
 """ class to read and process oncogenic mutations annotated in OncoKB Chakravarty et al., JCO PO 2017 """
 import logging
+import os
 import pandas as pd
+import requests
 
 from lifd.databases.database import Database
 from lifd.utils import PT_VAR_COL
+from lifd.settings import ONCOKB_INFO_URL, ONCOKB_ALLVARS_URL, DB_DIR
 
 __author__ = 'Johannes Reiter'
 __date__ = 'Jan 19, 2019'
 
 
 # get logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 
 class OncoKBDB(Database):
@@ -29,6 +32,31 @@ class OncoKBDB(Database):
         :param weight: support weight when database meets functionality prediction threshold
         :param lazy_loading: only load database if necessary for running LiFD
         """
+
+        if db_source is None:
+            logger.info('Annotated variants of OncoKB were not found at {}.'.format(db_source))
+            logger.info('Attempting to download OncoKB annotated variants...')
+            # download newest OncoKB file
+            # see https://www.oncokb.org/swagger-ui/index.html for full interface
+            info_dict = requests.get(ONCOKB_INFO_URL).json()
+            logger.info('Successfully connected to OncoKB API. Current version: {}, date {}'.format(
+                info_dict['dataVersion']['version'], info_dict['dataVersion']['date']))
+
+            payload = {'Accept': 'application/json'}
+            # payload = {'Accept': 'application/json', 'Authorization': 'Bearer {}'.format(ONCOKB_TOKEN)}
+            response = requests.get(ONCOKB_ALLVARS_URL, params=payload)
+
+            if response:
+                json_annotated_vars = response.json()
+                df_annotated_vars = pd.DataFrame.from_dict(json_annotated_vars)
+                db_source = os.path.join(
+                    DB_DIR, 'oncoKB_allAnnotatedVariants_{}.tsv'.format(info_dict['dataVersion']['version']))
+                df_annotated_vars.to_csv(db_source, sep='\t', index=False)
+                logger.info('Successfully downloaded annotated variants of OncoKB: {}'.format(db_source))
+            else:
+                logger.error('Unable to download OncoKB annotated variants. status code {}'.format(
+                    response.status_code))
+
         super().__init__(OncoKBDB.NAME, db_source, threshold, weight)
 
         if lazy_loading:
@@ -48,12 +76,15 @@ class OncoKBDB(Database):
         # read individual annotated functional vars
         self.db_df = pd.read_csv(self.db_source, delimiter='\t', comment='#', encoding='latin-1')
         self.db_df['PtVarKey'] = self.db_df.apply(
-            lambda row: '{}__{}'.format(row['Hugo Symbol'], row.Alteration), axis=1)
+            lambda row: '{}__{}'.format(row['gene'],      # previously gene column was 'Hugo Symbol'
+                                        row['variant']),  # previously variant column was 'Alteration'
+            axis=1)
         self.db_df.set_index('PtVarKey', inplace=True)
 
         # remove variants that are likely neutral or inconclusive
-        self.db_df = self.db_df[(self.db_df['Oncogenicity'] == 'Oncogenic')
-                                | (self.db_df['Oncogenicity'] == 'Likely Oncogenic')]
+        oncogenicity_col = 'oncogenicity' # previously oncogenicity column was 'Oncogenicity'
+        self.db_df = self.db_df[(self.db_df[oncogenicity_col] == 'Oncogenic')
+                                | (self.db_df[oncogenicity_col] == 'Likely Oncogenic')]
 
         logger.info('Loaded {} annotated oncogenic variants in OncoKB from file {}.'.format(
             len(self.db_df), self.db_source))

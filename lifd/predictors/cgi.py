@@ -17,7 +17,7 @@ __date__ = 'Jan 26, 2019'
 
 
 # get logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 
 # NOTE: CGI cannot be run without a valid username and token!

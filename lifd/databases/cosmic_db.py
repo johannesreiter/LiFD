@@ -8,14 +8,14 @@ import pysam
 
 from lifd.utils import NT_VAR_COL, PT_VAR_COL
 from lifd.databases.database import Database
-from lifd.settings import DB_DIR
+from lifd.settings import REF_GENOME_FA_FP
 
 __author__ = 'Johannes Reiter'
 __date__ = 'Jan 19, 2019'
 
 
 # get logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 # get nucleotide complement for reverse strand
 NT_COMPLEMENT = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
@@ -70,12 +70,17 @@ class CosmicDB(Database):
 
             logger.info('Read previously processed genome/exome-wide sequencing data of '
                         'COSMIC samples with in total {} distinct mutations.'.format(sum(self.db_df.Occurrences)))
+
         # extract necessary information and save it to CSV file
         else:
             cosmic_df = pd.read_csv(
                 self.db_source, delimiter='\t',
                 usecols=['ID_sample', 'Mutation ID', 'Mutation CDS', 'Mutation genome position', 'Mutation strand',
-                         'Gene name', 'Mutation AA', 'Tumour origin', 'GRCh']) # ADDED GRCh
+                         'Gene name', 'Mutation AA', 'Tumour origin', 'GRCh'])  # only <= v89 is supported
+            # HGVS could be useful to get the correct variant change despite the inconsistent mutation strand
+            # usecols=['ID_sample', 'MUTATION_ID', 'Mutation CDS', 'Mutation genome position', 'Mutation strand',
+            #          'Gene name', 'Mutation AA', 'Tumour origin', 'GRCh'])  # v90 is not supported
+
             cosmic_df.set_index(['ID_sample', 'Mutation ID'], inplace=True)
 
             logger.info('Finished reading COSMIC input file {}. Now processing...'.format(self.db_source))
@@ -95,23 +100,25 @@ class CosmicDB(Database):
             liftover = None
             for (sample_id, mutation_id), row in cosmic_df.iterrows():
                 # no genomic information available => skip this variant
-                if isinstance(row['Mutation genome position'], float) and np.isnan(row['Mutation genome position']):
+                mut_gen_pos = row['Mutation genome position']
+                if isinstance(mut_gen_pos, float) and np.isnan(mut_gen_pos):
                     continue
 
                 # create Nucleotide Variant Key
-                chrom, pos = row['Mutation genome position'].split(':')
+                chrom, pos = mut_gen_pos.split(':')
                 start_pos = None
                 end_pos = None
                 if '-' in pos:
                     start_pos = int(pos.split('-')[0])   # start position
-                    end_pos = int(pos.split('-')[1]) # end position
+                    end_pos = int(pos.split('-')[1])     # end position
                 else:
                     start_pos = int(pos)
                     end_pos = int(pos)
-                
-                if row['Mutation CDS'].find('>') != -1:
+
+                mut_cds = row['Mutation CDS']
+                if mut_cds.find('>') != -1:
                     # find start of reference allele
-                    refs, alt = row['Mutation CDS'].split('>')
+                    refs, alt = mut_cds.split('>')
                     if refs.find('_') != -1:
                         refs = refs[refs.find('_')+1:]
                         ref = ''.join(i for i in refs if not i.isdigit() and i != '+' and i != '-')
@@ -130,34 +137,40 @@ class CosmicDB(Database):
                     # else:
                     #     # logger.debug('Change not provided => skip: {}'.format(info))
                     #     alt = None
+
                 # was variant a deletion-insertion?
-                elif row['Mutation CDS'].lower().find('delins') != -1:
-                    change_idx = row['Mutation CDS'].lower().find('delins') + 6
-                    genome = pysam.Fastafile(os.path.join(DB_DIR, 'hg19.fa'))
-                    ref = genome.fetch('chr' + chrom, start_pos-1, end_pos)
-                    if ref.isdigit() or ref == '?':
-                        ref = 'del' + ref 
-                    alt = row['Mutation CDS'][change_idx:]
-                    if alt.isdigit() or alt == '?':
-                        alt = 'del' + alt
-                    
+                elif mut_cds.lower().find('delins') != -1:
+                    try:
+                        change_idx = mut_cds.lower().find('delins') + 6
+                        genome = pysam.Fastafile(REF_GENOME_FA_FP)
+                        ref = genome.fetch('chr' + ('Y' if chrom == '23' else chrom), start_pos-1, end_pos).upper()
+                        if ref.isdigit() or ref == '?':
+                            ref = 'del' + ref
+                        alt = mut_cds[change_idx:]
+                        if alt.isdigit() or alt == '?':
+                            alt = 'del' + alt
+                    except KeyError as err:
+                        logger.debug(row)
+                        logger.warning('PySam: {}'.format(err))
+                        continue
+
                 # was variant a deletion?
-                elif row['Mutation CDS'].lower().find('del') != -1:
-                    change_idx = row['Mutation CDS'].lower().find('del') + 3
-                    ref = row['Mutation CDS'][change_idx:]
+                elif mut_cds.lower().find('del') != -1:
+                    change_idx = mut_cds.lower().find('del') + 3
+                    ref = mut_cds[change_idx:]
                     if ref.isdigit() or ref == '?':
                         ref = 'del' + ref
                     alt = '-'
 
                 # was variant an insertion?
-                elif row['Mutation CDS'].lower().find('ins') != -1:
-                    change_idx = row['Mutation CDS'].lower().find('ins') + 3
-                    alt = row['Mutation CDS'][change_idx:]
+                elif mut_cds.lower().find('ins') != -1:
+                    change_idx = mut_cds.lower().find('ins') + 3
+                    alt = mut_cds[change_idx:]
                     if alt.isdigit() or alt == '?':
                         alt = 'ins' + alt
                     ref = '-'
                 else:
-                    logger.debug('Change not provided in COSMIC => skip: {}'.format(row))
+                    # logger.debug('Change not provided in COSMIC => skip: {}'.format(row))
                     continue
 
                 if row['Mutation strand'] == '-':
@@ -190,10 +203,10 @@ class CosmicDB(Database):
 
                 if not (all(nt in NT_COMPLEMENT.keys() for nt in ref) or ref == '-' or 'del' in ref.lower()
                         or 'ins' in alt.lower() or ref.isdigit() or alt.isdigit()):
-                    print((sample_id, mutation_id)) #DELETE
-                    print(row) #DELETE
-                    logger.error('Error in formatting of reference {} or alternate allele {}'.format(ref, alt))
-                    raise RuntimeError('COSMIC formatting error: {}'.format(row))
+
+                    logger.warning('Error in formatting of reference {} or alternate allele {}'.format(ref, alt))
+                    logger.debug('Row: {}'.format(row))
+                    #raise RuntimeError('COSMIC formatting error: {}'.format(row))
 
                 # for debugging of correct formatting of variants only
                 # elif not ('del' in ref.lower() or 'ins' in alt.lower()):

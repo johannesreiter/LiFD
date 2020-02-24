@@ -11,7 +11,7 @@ __date__ = 'Jan 18, 2019'
 
 
 # get logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 # column name in table file where variant amino acids are stored
 VAA_COL = 'Variant Amino Acid'

@@ -7,7 +7,7 @@ import csv
 from subprocess import Popen, PIPE
 
 from lifd.predictors.predictor import Predictor
-from lifd.settings import HOME_DIR, VEP_CACHE, MDL_DIR
+from lifd.settings import HOME_DIR, VEP_CACHE, PRD_DIR, VEP_DIR
 from lifd.utils import NT_VAR_COL, FUNC_COL, FATHMM_KEY_COL, PP_SCORE_COL, SIFT_SCORE_COL, add_column, NAN
 
 __author__ = 'Johannes Reiter'
@@ -15,17 +15,16 @@ __date__ = 'Jan 26, 2019'
 
 
 # get logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 
 class Vep(Predictor):
 
     # VEP configuration
-    PATH = os.path.join(MDL_DIR, 'ensembl-vep')
+    PATH = os.path.join(VEP_DIR)
     INPUT_SUFFIX = '_vep_input.tsv'
     OUTPUT_SUFFIX = '_vep_output.tsv'
-    COMMAND = ('./vep --species homo_sapiens --dir {} --assembly {} --cache_version 96 --no_progress '
+    COMMAND = ('./vep --species homo_sapiens --dir {} --assembly {} --cache_version 99 --no_progress '
                + '--offline --no_stats --sift b --symbol --numbers --domains --gene_phenotype --pubmed --protein '
                + '--variant_class --shift_hgvs 1 --check_existing --no_escape --failed 1 --minimal --allele_number '
                + '--pick_order canonical,tsl,biotype,rank,ccds,length --input_file {} --output_file {} '

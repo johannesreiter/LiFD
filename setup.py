@@ -14,7 +14,7 @@ setuptools.setup(
       description='LiFD is a two-phase algorithm that predicts likely functional driver (LiFD) mutations. ',
       long_description=long_description,
       long_description_content_type='text/markdown',
-      install_requires=['numpy', 'scipy', 'pandas', 'statsmodels'],
+      install_requires=['numpy', 'scipy', 'pandas', 'statsmodels', 'xlsxwriter', 'xlrd'],
       url='https://github.com/johannesreiter/LiFD_dev',
       author='Johannes Reiter',
       author_email='johannes.reiter@stanford.edu',
@@ -22,5 +22,10 @@ setuptools.setup(
       classifiers=[
         'Programming Language :: Python :: 3.6',
       ],
-      test_suite='lifd.test'
+      test_suite='lifd.test',
+      entry_points={
+        'console_scripts': [
+            'lifd = lifd.lifd_script:main'
+        ]
+      }
 )

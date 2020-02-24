@@ -4,7 +4,6 @@ import logging
 import os
 import pandas as pd
 import requests
-import sys
 
 from lifd.predictors.cgi import Cgi
 from lifd.utils import NT_VAR_COL

@@ -7,7 +7,7 @@ import csv
 from subprocess import Popen, PIPE
 
 from lifd.predictors.predictor import Predictor
-from lifd.settings import HOME_DIR, MDL_DIR
+from lifd.settings import HOME_DIR, PRD_DIR
 from lifd.utils import add_column, NAN, NT_VAR_COL, FUNC_COL, CT_COL
 
 __author__ = 'Johannes Reiter'
@@ -15,13 +15,13 @@ __date__ = 'Jan 26, 2019'
 
 
 # get logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lifd.{}'.format(__name__))
 
 
 class Candra(Predictor):
 
     # CanDrA path: only support hg19 (NCI Build 37)
-    PATH = os.path.join(MDL_DIR, 'CanDrA.v+')
+    PATH = os.path.join(PRD_DIR, 'CanDrA.v+')
     DATABASE = os.path.join(PATH, 'database')
     INPUT_SUFFIX = '_candra_input.tsv'
     OUTPUT_SUFFIX = '_candra_output.tsv'

@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 import pysam
-from lifd.settings import DB_DIR
+import lifd.settings as settings
 
 class PysamTest(unittest.TestCase):
 
@@ -15,11 +15,11 @@ class PysamTest(unittest.TestCase):
         return
         
     def test_FastaFileAvailability(self):
-        self.assertTrue(os.path.isfile(os.path.join(DB_DIR, 'hg19.fa')))
+        self.assertTrue(os.path.isfile(settings.REF_GENOME_FA_FP))
     
     def test_Pysam(self):
-        genome = pysam.Fastafile(os.path.join(DB_DIR, 'hg19.fa'))
-        tmp = pd.read_csv(os.path.join(DB_DIR, 'catalog_of_validated_oncogenic_mutations.tsv'), delimiter='\t', encoding='Latin-1')
+        genome = pysam.Fastafile(settings.REF_GENOME_FA_FP)
+        tmp = pd.read_csv(settings.ONCOGENIC_VARS_FP, delimiter='\t', encoding='Latin-1')
         for entries in tmp['gdna']:
             entry = entries.split('__')[0]
             if 'dup' not in entry:
