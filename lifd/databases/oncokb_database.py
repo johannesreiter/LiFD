@@ -33,7 +33,7 @@ class OncoKBDB(Database):
         :param lazy_loading: only load database if necessary for running LiFD
         """
 
-        if db_source is None:
+        if db_source is None or not os.path.isfile(db_source):
             logger.info('Annotated variants of OncoKB were not found at {}.'.format(db_source))
             logger.info('Attempting to download OncoKB annotated variants...')
             # download newest OncoKB file

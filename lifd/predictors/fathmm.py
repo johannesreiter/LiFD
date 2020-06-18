@@ -23,7 +23,7 @@ class FatHMM(Predictor):
 
     # FatHMM settings
     PATH = os.path.join(PRD_DIR, 'fathmm', 'cgi-bin')
-    COMMAND = 'python3 fathmm.py -w Cancer {} {}' # 'python3 fathmm.py -w Cancer {} {}' if updating external fathmm to python 3
+    COMMAND = 'python2 fathmm.py -w Cancer {} {}' # 'python3 fathmm.py -w Cancer {} {}' if updating external fathmm to python 3
     INPUT_SUFFIX = '_fathmm_input.txt'
     OUTPUT_SUFFIX = '_fathmm_output.tsv'
     SCORE_COL = 'FATHMM_score'

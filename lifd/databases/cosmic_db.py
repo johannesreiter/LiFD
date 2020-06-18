@@ -39,6 +39,12 @@ class CosmicDB(Database):
         :param weight: support weight when database meets functionality prediction threshold
         :param lazy_loading: only load database if necessary for running LiFD
         """
+
+        if not os.path.isfile(db_source):
+            logger.error(f'COSMIC file is not available at: {db_source}')
+            logger.error(f'Adapt path to COSMIC file in lifd/settings.py')
+            raise RuntimeError(f'COSMIC file is not available at: {db_source}')
+
         super().__init__(CosmicDB.NAME, db_source, threshold, weight)
 
         self.processed_db_fp = None

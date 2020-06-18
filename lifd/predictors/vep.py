@@ -8,6 +8,7 @@ from subprocess import Popen, PIPE
 
 from lifd.predictors.predictor import Predictor
 from lifd.settings import HOME_DIR, VEP_CACHE, PRD_DIR, VEP_DIR
+from lifd.settings import CHR_COL, POS_START_COL, POS_END_COL, REF_COL, ALT_COL
 from lifd.utils import NT_VAR_COL, FUNC_COL, FATHMM_KEY_COL, PP_SCORE_COL, SIFT_SCORE_COL, add_column, NAN
 
 __author__ = 'Johannes Reiter'
@@ -126,8 +127,8 @@ class Vep(Predictor):
         return var_df
 
     @staticmethod
-    def generate_input_file(input_fp, data_df, chromosome_col='Chromosome', start_col='StartPosition',
-                            end_col='EndPosition', reference_col='ReferenceAllele', alternate_col='AlternateAllele',
+    def generate_input_file(input_fp, data_df, chromosome_col=CHR_COL, start_col=POS_START_COL,
+                            end_col=POS_END_COL, reference_col=REF_COL, alternate_col=ALT_COL,
                             var_key_col=NT_VAR_COL, gene_col=None):
         """
         Generate input file for given nonsynonymous variants to run VEP based on pandas dataframe

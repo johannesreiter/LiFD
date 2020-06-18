@@ -63,9 +63,9 @@ class IntegrationTest(unittest.TestCase):
         # testing CGI integration
         cgi_db = CgiDB(ONCOGENIC_VARS_FP, lazy_loading=False)
         self.assertLessEqual(5601, len(cgi_db.db_df))
-        self.assertEqual(9, len(cgi_db.db_df))
+        # self.assertEqual(9, len(cgi_db.db_df))
 
-        nt_var_key = '12__25398284__G__A'
+        nt_var_key = '12__25398284__C__A'
         pt_var_key = 'KRAS__G12V'
         self.assertGreaterEqual(1411, cosmic_db.in_database(nt_var_key, None))
         self.assertTrue(hs_db.in_database(nt_var_key, pt_var_key))
@@ -84,6 +84,21 @@ class IntegrationTest(unittest.TestCase):
         # prds = []
         # l = LiFD(databases=dbs, predictors=prds)
 
+    def test_cgidatabase_availability(self):
+
+        # testing CGI integration
+        cgi_db = CgiDB(ONCOGENIC_VARS_FP, lazy_loading=False)
+        self.assertLessEqual(5601, len(cgi_db.db_df))
+        # self.assertEqual(9, len(cgi_db.db_df))
+
+        nt_var_key = '12__25398284__C__A'
+        # pt_var_key = 'KRAS__G12V'
+        self.assertTrue(cgi_db.in_database(nt_var_key, pt_var_key=None))
+
+        nt_var_key = '12__25398284__G__@'
+        # pt_var_key = 'KRAS__G12@'
+        self.assertFalse(cgi_db.in_database(nt_var_key, pt_var_key=None))
+
     # @unittest.skip('Not yet implemented')
     def test_lifd_predictions(self):
         # set up databases for first phase of LiFD
@@ -97,7 +112,9 @@ class IntegrationTest(unittest.TestCase):
                ]
 
         # predictors for second phase of LiFD
-        prds = [Vep, Candra, Cravat, FatHMM, Cgi]
+        prds = [Vep, Candra, Cravat,
+                # FatHMM,   # FatHMM no longer works with new version of mysql
+                Cgi]
 
         lifd = LiFD(databases=dbs, predictors=prds)
 
@@ -115,9 +132,9 @@ class IntegrationTest(unittest.TestCase):
         self.assertEqual(6, len(var_df[var_df[LIFD_COL]]))
 
         self.assertTrue(var_df[var_df['StartPosition'] == VARS_MIN_INPUT[0]['StartPosition']][LIFD_COL].iloc[0])
-        self.assertEqual(4.4,
+        self.assertEqual(4.5,
                          var_df[var_df['StartPosition'] == VARS_MIN_INPUT[0]['StartPosition']][LIFD_SUP_COL].iloc[0])
-        self.assertEqual(1121, var_df[var_df['StartPosition'] == VARS_MIN_INPUT[0]['StartPosition']][
+        self.assertEqual(1149, var_df[var_df['StartPosition'] == VARS_MIN_INPUT[0]['StartPosition']][
             cosmic_db.pred_col].iloc[0])
 
         nt_var_key = '19__48994757__-__G'

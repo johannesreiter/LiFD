@@ -9,6 +9,7 @@ from subprocess import Popen, PIPE
 from lifd.predictors.predictor import Predictor
 from lifd.settings import HOME_DIR, PRD_DIR
 from lifd.utils import add_column, NAN, NT_VAR_COL, FUNC_COL, CT_COL
+from lifd.settings import CHR_COL, POS_START_COL, REF_COL, ALT_COL
 
 __author__ = 'Johannes Reiter'
 __date__ = 'Jan 26, 2019'
@@ -130,8 +131,8 @@ class Candra(Predictor):
         return var_df
 
     @staticmethod
-    def generate_input_file(input_fp, data_df, chromosome_col='Chromosome', position_col='StartPosition',
-                            reference_col='ReferenceAllele', alternate_col='AlternateAllele', var_key_col=NT_VAR_COL):
+    def generate_input_file(input_fp, data_df, chromosome_col=CHR_COL, position_col=POS_START_COL,
+                            reference_col=REF_COL, alternate_col=ALT_COL, var_key_col=NT_VAR_COL):
         """
         Generate input file for given nonsynonymous variants to run CanDrA based on pandas dataframe
         :param input_fp: path to file

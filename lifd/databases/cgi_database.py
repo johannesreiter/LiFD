@@ -58,11 +58,13 @@ class CgiDB(Database):
         #     lambda row: '{}__{}'.format(row.gene, row.protein[2:]), axis=1)
         # self.db_df.set_index('PtVarKey', inplace=True)
         # self.db_df = self.db_df.loc[~self.db_df.index.duplicated(keep='first')]
-        
+
+        # code
         if isinstance(self.db_source, str):
             ext = os.path.splitext(self.db_source)[1]
             self.processed_db_fp = self.db_source.replace(ext, '_processed.json')
-            
+
+        # implemented by Kam Louie; missing additional comments
         if self.processed_db_fp is not None and os.path.exists(self.processed_db_fp) \
                 and os.path.isfile(self.processed_db_fp):
 
@@ -70,6 +72,7 @@ class CgiDB(Database):
                 self.db_df = json.load(f)
 
             logger.info('Read previously processed CGI database with {} distinct mutations.'.format(len(self.db_df)))
+
         else:
             tmp = pd.read_csv(self.db_source, delimiter='\t', encoding='Latin-1')
             self.db_df = list()
@@ -120,7 +123,10 @@ class CgiDB(Database):
                     elif 'ins' in mut:
                         ref_a = '-'
                         alt_a = mut[3:]
-                    self.db_df.append('{}__{}__{}__{}'.format(chrom, gloc, ref_a, alt_a))
+
+                    nt_var_key = '{}__{}__{}__{}'.format(chrom, gloc, ref_a, alt_a)
+                    self.db_df.append(nt_var_key)
+
             if self.processed_db_fp is not None:
                 with open(self.processed_db_fp, 'w') as f:
                     json.dump(self.db_df, f)

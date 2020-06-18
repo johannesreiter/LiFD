@@ -8,7 +8,7 @@ HOME_DIR = os.path.expanduser('~')
 DB_DIR = os.path.join(HOME_DIR, 'databases')
 
 # default predictor directory
-PRD_DIR = os.path.join(HOME_DIR, 'predictors')
+PRD_DIR = os.path.join(HOME_DIR, 'software')
 
 VEP_DIR = os.path.join(HOME_DIR, 'software', 'ensembl-vep')
 
@@ -32,7 +32,7 @@ HOTSPOTS_FP = os.path.join(DB_DIR, 'ChangTaylor_hotspots_cd2018_v2.xls')
 ONCOKB_INFO_URL = 'https://www.oncokb.org/api/v1/info'
 ONCOKB_ALLVARS_URL = 'https://oncokb.org:443/api/v1/utils/allAnnotatedVariants'
 # ONCOKB_ALLVARS_FP = None
-ONCOKB_ALLVARS_FP = os.path.join(DB_DIR, 'oncoKB_allAnnotatedVariants_v2.1.tsv')
+ONCOKB_ALLVARS_FP = os.path.join(DB_DIR, 'oncoKB_allAnnotatedVariants_v2.4.tsv')
 
 # DEPRECATED: no longer provided as a downloadable file
 # see https://github.com/oncokb/oncokb-public/tree/master/data for newest data releases
@@ -46,3 +46,10 @@ REF_GENOME_FA_FP = os.path.join(DB_DIR, 'hg19.fa')
 
 # default output directory for output files
 OUTPUT_DIR = 'LiFD_TMP'
+
+# default column names in input file
+CHR_COL = 'Chromosome'
+POS_START_COL = 'StartPosition'
+POS_END_COL = 'EndPosition'
+REF_COL = 'ReferenceAllele'
+ALT_COL = 'AlternateAllele'

@@ -11,6 +11,7 @@ import time
 
 from lifd.predictors.predictor import Predictor
 from lifd.utils import add_column, NT_VAR_COL, FUNC_COL, CT_COL
+from lifd.settings import CHR_COL, POS_START_COL, REF_COL, ALT_COL
 
 __author__ = 'Johannes Reiter'
 __date__ = 'Jan 26, 2019'
@@ -166,8 +167,8 @@ class Cgi(Predictor):
         return var_df
 
     @staticmethod
-    def generate_input_file(fp, data_df, chromosome_col='Chromosome', position_col='StartPosition',
-                            reference_col='ReferenceAllele', alternate_col='AlternateAllele', var_key_col=NT_VAR_COL):
+    def generate_input_file(fp, data_df, chromosome_col=CHR_COL, position_col=POS_START_COL,
+                            reference_col=REF_COL, alternate_col=ALT_COL, var_key_col=NT_VAR_COL):
         """
         Generate input file for given nonsynonymous variants to run CGI (cancer genome interpreter) based
         on pandas dataframe
@@ -253,50 +254,62 @@ class Cgi(Predictor):
         return existing_jobs
 
     @staticmethod
-    def run(input_fp, output_fp, cancer_type, ds_id):
+    def run(input_fp, output_fp, cancer_type, ds_id, rerun=False):
         """
         Run the tool CGI (cancer genome interpreter) if it has not been run yet and download results
         :param input_fp: path to input file
         :param output_fp: path to output file
         :param cancer_type: cancer type
         :param ds_id: dataset identifier (e.g., name of subject)
+        :param rerun: delete previous run and submit new variants for analysis
         """
         if Cgi.USER_ID is None or Cgi.TOKEN is None:
             raise RuntimeError('CGI requires a valid username {} and token.'.format(Cgi.USER_ID, Cgi.TOKEN))
 
         existing_jobs = Cgi._get_existing_jobs()
         
-        # # subject has been previously analyzed with CGI
-        # if ds_id in existing_jobs.keys():
-        #     most_recent_date = sorted(existing_jobs[ds_id].keys())[-1]
-        #     job_id = existing_jobs[ds_id][most_recent_date]['id']
-        #     logger.info('CGI has been run previously for subject {} with ID {}. Use results from {}.'.format(
-        #         ds_id, job_id, most_recent_date))
+        # subject has been previously analyzed with CGI
+        if ds_id in existing_jobs.keys() and not rerun:
 
-        # # no previous results found
-        # else:
-        
-        # threading.Thread(
-        #     target=requests.post, 
-        #     args=(
-        #         Cgi.URL,headers=Cgi.HEADERS, 
-        #         files={'mutations': open(input_fp, 'rb')}, 
-        #         data=Cgi.get_payload_run(cancer_type, ds_id)
-        #     )
-        # )
-        
-        r = requests.post(Cgi.URL,
-                          headers=Cgi.HEADERS,
-                          files={
-                              'mutations': open(input_fp, 'rb'),
-                          },
-                          data=Cgi.get_payload_run(cancer_type, ds_id))
-        job_id = r.json()
-        if 'error_code' in job_id:
-            logger.error('CGI job submission failed with error code {}: {}'.format(job_id['error_code'], job_id))
-            raise RuntimeError('CGI job submission failed with response: {}'.format(job_id))
+            most_recent_date = sorted(existing_jobs[ds_id].keys())[-1]
+            job_id = existing_jobs[ds_id][most_recent_date]['id']
+            logger.info('CGI has been run previously for subject {} with ID {}. Use results from {}.'.format(
+                ds_id, job_id, most_recent_date))
+
+        # submit new job
         else:
-            logger.info('Successfully submitted job with ID {} to CGI for subject {}.'.format(job_id, ds_id))
+
+            if ds_id in existing_jobs.keys() and rerun:
+
+                r = requests.delete(f'{Cgi.URL}/{ds_id}', headers=Cgi.HEADERS)
+                job_id = r.json()
+                if 'error_code' in job_id:
+                    logger.error(f'CGI job deletion failed with error code {job_id["error_code"]}: {job_id}')
+                    raise RuntimeError('CGI job deletion failed with response: {}'.format(job_id))
+                else:
+                    logger.info('Successfully deleted job with ID {} to CGI for dataset {}.'.format(job_id, ds_id))
+
+            r = requests.post(Cgi.URL,
+                              headers=Cgi.HEADERS,
+                              files={
+                                  'mutations': open(input_fp, 'rb'),
+                              },
+                              data=Cgi.get_payload_run(cancer_type, ds_id))
+            job_id = r.json()
+            if 'error_code' in job_id:
+                logger.error('CGI job submission failed with error code {}: {}'.format(job_id['error_code'], job_id))
+                raise RuntimeError('CGI job submission failed with response: {}'.format(job_id))
+            else:
+                logger.info('Successfully submitted job with ID {} to CGI for subject {}.'.format(job_id, ds_id))
+
+            # threading.Thread(
+            #     target=requests.post,
+            #     args=(
+            #         Cgi.URL,headers=Cgi.HEADERS,
+            #         files={'mutations': open(input_fp, 'rb')},
+            #         data=Cgi.get_payload_run(cancer_type, ds_id)
+            #     )
+            # )
 
         # download the results and write them to a zip file
         # check whether or not CGI completed the analysis
@@ -316,14 +329,12 @@ class Cgi(Predictor):
         else: 
             time_total = 0
             while Cgi.get_job_info(job_id)['status'] != 'Done':
-                logger.info(
-                    'CGI analysis for case {} (id: {}) is not yet completed. Time elapsed: {}'.format(
+                logger.info('CGI analysis for case {} (id: {}) is not yet completed. Time elapsed: {}'.format(
                     ds_id, job_id, time_total))
                 time.sleep(20)
                 time_total += 20
             
-            logger.info(
-                'CGI analysis for case {} (id: {}) is complete. Time elapsed: {}'.format(
+            logger.info('CGI analysis for case {} (id: {}) is complete. Time elapsed: {}'.format(
                 ds_id, job_id, time_total))
             payload = {'action': 'download'}
             r = requests.get('{}/{}'.format(Cgi.URL, job_id), headers=Cgi.HEADERS, params=payload)

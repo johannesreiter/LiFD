@@ -6,6 +6,7 @@ import shutil
 
 from lifd.predictors.cravat import Cravat
 from lifd.utils import NT_VAR_COL
+from lifd.settings import CHR_COL, POS_START_COL, REF_COL, ALT_COL
 
 from lifd.test.utils_tests import CANCER_TYPE, VARIANTS, N_FUNC_VARS
 
@@ -55,8 +56,8 @@ class CravatTest(unittest.TestCase):
         # generate input file
         self.assertFalse(os.path.exists(INPUT_FP), 'Cravat input file with variants should not yet exist.')
         Cravat.generate_input_file(
-            INPUT_FP, vars_df, chromosome_col='Chromosome', position_col='StartPosition',
-            reference_col='ReferenceAllele', alternate_col='AlternateAllele', subject_col='Subject')
+            INPUT_FP, vars_df, chromosome_col=CHR_COL, position_col=POS_START_COL,
+            reference_col=REF_COL, alternate_col=ALT_COL, subject_col='Subject')
         self.assertTrue(os.path.exists(INPUT_FP), 'Cravat input file with variants should exist.')
 
         # generate CRAVAT output

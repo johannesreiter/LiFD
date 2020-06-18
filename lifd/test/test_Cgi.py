@@ -52,7 +52,8 @@ class CgiTest(unittest.TestCase):
         #     logger.error('ERROR: Reading from CGI cannot be tested because adequate job does not exist.')
 
     def tearDown(self):
-        files = ['{}{}'.format(DS_ID_READING, Cgi.INPUT_SUFFIX), '{}{}'.format(DS_ID_READING, Cgi.OUTPUT_SUFFIX)] # , '{}{}'.format(DS_ID_SUBMISSION, Cgi.INPUT_SUFFIX), '{}{}'.format(DS_ID_SUBMISSION, Cgi.OUTPUT_SUFFIX)]
+        files = ['{}{}'.format(DS_ID_READING, Cgi.INPUT_SUFFIX), '{}{}'.format(DS_ID_READING, Cgi.OUTPUT_SUFFIX),
+                 '{}{}'.format(DS_ID_SUBMISSION, Cgi.INPUT_SUFFIX), '{}{}'.format(DS_ID_SUBMISSION, Cgi.OUTPUT_SUFFIX)]
         for file in files:
             if os.path.isfile(file):
                 os.unlink(file)
@@ -88,7 +89,7 @@ class CgiTest(unittest.TestCase):
         Cgi.run(input_fp, output_fp, CANCER_TYPE, DS_ID_SUBMISSION)
         self.assertEqual(len(Cgi._get_existing_jobs().keys()), n_existing_jobs+1, 'New job was created.')
 
-        # downloading results needs to be separately tested
+        # downloading/reading results is separately tested
 
     # @unittest.skip('Not yet implemented')
     def test_CGI_reading(self):
@@ -97,25 +98,32 @@ class CgiTest(unittest.TestCase):
         :return:
         """
 
-        input_fp = '{}{}'.format(DS_ID_SUBMISSION, Cgi.INPUT_SUFFIX) # DS_ID_SUBMISSION
-        output_fp = '{}{}'.format(DS_ID_SUBMISSION, Cgi.OUTPUT_SUFFIX) # DS_ID_SUBMISSION
+        input_fp = '{}{}'.format(DS_ID_READING, Cgi.INPUT_SUFFIX)  # DS_ID_SUBMISSION
+        output_fp = '{}{}'.format(DS_ID_READING, Cgi.OUTPUT_SUFFIX)  # DS_ID_SUBMISSION
         existing_jobs = Cgi._get_existing_jobs()
-        if DS_ID_SUBMISSION not in existing_jobs.keys(): # DS_ID_READING
-            logger.error('ERROR: Reading from CGI cannot be tested because adequate job does not exist.')
-            logger.info('Creating missing job {} now such that reading can be tested later.')
+
+        self.assertFalse(os.path.exists(output_fp) and os.path.isfile(output_fp),
+                         'CGI output file should not exist.')
+
+        if DS_ID_READING not in existing_jobs.keys():  # DS_ID_READING
+            logger.warning('Adequate job to test CGI reading is missing.')
             # generate input file
             Cgi.generate_input_file(input_fp, self.var_df)
-            Cgi.run(input_fp, output_fp, CANCER_TYPE, DS_ID_SUBMISSION)
+            self.assertTrue(os.path.isfile(input_fp),
+                            f'Input file has to exist to test CGI reading: {os.path.abspath(input_fp)}')
 
-        # download results from CGI and obtain results
-        self.assertFalse(os.path.exists(output_fp), 'CGI output file should not yet exist.')
-        Cgi.run(input_fp, output_fp, CANCER_TYPE, DS_ID_SUBMISSION) # DS_ID_READING
+            # submit and download results file from CGI
+            Cgi.run(input_fp, output_fp, CANCER_TYPE, DS_ID_READING)
+            logger.info(f'Submitted missing job {DS_ID_READING} such that reading can be tested.')
+        else:
+            # download results file from CGI
+            Cgi.run(input_fp, output_fp, CANCER_TYPE, DS_ID_READING)  # DS_ID_READING
+
         self.assertTrue(os.path.exists(output_fp) and os.path.isfile(output_fp), 'CGI output file should exist.')
-
         cgi_df = Cgi.read_results(output_fp)
 
         # test if duplicates got merged
-        self.assertEqual(cgi_df.shape, (2, 50),
+        self.assertEqual(cgi_df.shape, (3, 50),
                          'Dimensions of the dataframe checking: {}'.format(cgi_df.shape))
 
         self.assertEqual(cgi_df.loc[VARIANTS[0][NT_VAR_COL]]['driver'], 'known')
@@ -131,8 +139,8 @@ class CgiTest(unittest.TestCase):
     def test_Cgi_get_results(self):
 
         # generate input file
-        input_fp = '{}{}'.format(DS_ID_READING, Cgi.INPUT_SUFFIX) # DS_ID_READING
-        output_fp = '{}{}'.format(DS_ID_READING, Cgi.OUTPUT_SUFFIX) # DS_ID_READING
+        input_fp = '{}{}'.format(DS_ID_READING, Cgi.INPUT_SUFFIX)    # DS_ID_READING
+        output_fp = '{}{}'.format(DS_ID_READING, Cgi.OUTPUT_SUFFIX)  # DS_ID_READING
         # download results from CGI and obtain results
         self.assertFalse(os.path.exists(output_fp), 'CGI output file should not yet exist.')
 
@@ -157,7 +165,7 @@ class CgiTest(unittest.TestCase):
 
         # add results for all subjects
         self.var_df = Cgi.get_annotation(self.var_df, CANCER_TYPE, input_fp=input_fp, output_fp=output_fp)
-        self.assertEqual(self.var_df[Cgi.DRIVER_COL].count(), N_FUNC_VARS, 'Results for all subjects were added.')
+        self.assertEqual(self.var_df[Cgi.KNOWN_DRIVER_COL].count(), N_FUNC_VARS, 'Results for all subjects were added.')
         self.assertEqual(self.var_df[self.var_df[NT_VAR_COL] == VARIANTS[0][NT_VAR_COL]][Cgi.DRIVER_COL].iloc[0],
                          'known')
         self.assertEqual(self.var_df[self.var_df[NT_VAR_COL] == VARIANTS[0][NT_VAR_COL]][Cgi.DRIVER_COL].iloc[1],

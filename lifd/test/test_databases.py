@@ -4,6 +4,7 @@ import os
 import shutil
 import pandas as pd
 from io import StringIO
+import mock
 
 from lifd.databases.database import Database
 from lifd.databases.hotspots_database import HotspotsDB
@@ -159,6 +160,8 @@ class DatabaseTest(unittest.TestCase):
         self.assertIsNotNone(cgi_db.db_df)
         self.assertEqual(len(cgi_db.db_df), 2)
 
+        print(cgi_db.db_df)
+
         nt_var_key = '12__25398284__C__A'
         self.assertTrue(cgi_db.in_database(nt_var_key=nt_var_key))
 
@@ -186,9 +189,18 @@ class DatabaseTest(unittest.TestCase):
         # after check of first variant, DB should be loaded
         self.assertIsNotNone(cgi_db.db_df)
 
-    def test_CosmicDatabase(self):
+    @mock.patch('os.path.isfile')
+    def test_CosmicDatabase(self, patch_isfile):
+
+        # create patch to pretend that the testing database is a file
+        patch_isfile.return_value = True
+
         # mirroring mini hotspot file instead of mocking
         cosmic_db = CosmicDB(self.cosmic_io_tsv, lazy_loading=False)
+
+        # was it checked whether the given file is available at the given path?
+        self.assertTrue(patch_isfile.called)
+
         # print(cosmic_db.db_df)
         # does source filename get assigned correctly
         self.assertEqual(cosmic_db.db_source, self.cosmic_io_tsv)
@@ -244,7 +256,11 @@ class DatabaseTest(unittest.TestCase):
             cosmic_db.in_database(None, None)
 
     # @unittest.skip('Cosmic is not yet implemented')
-    def test_CosmicDatabase_lazy_loading(self):
+    @mock.patch('os.path.isfile')
+    def test_CosmicDatabase_lazy_loading(self, patch_isfile):
+
+        # create patch to pretend that the testing database is a file
+        patch_isfile.return_value = True
 
         # mirroring mini hotspot file instead of mocking
         cosmic_db = CosmicDB(self.cosmic_io_tsv, lazy_loading=True)
@@ -259,10 +275,17 @@ class DatabaseTest(unittest.TestCase):
         # after check of first variant, DB should be loaded
         self.assertIsNotNone(cosmic_db.db_df)
 
-    def test_OncoKBDatabase(self):
+    @mock.patch('os.path.isfile')
+    def test_OncoKBDatabase(self, patch_isfile):
+
+        # create patch to pretend that the testing database is a file
+        patch_isfile.return_value = True
 
         # mirroring mini hotspot file instead of mocking
         oncokb_db = OncoKBDB(db_source=self.oncokb_io_tsv, lazy_loading=False)
+
+        # was it checked whether the given file is available at the given path?
+        self.assertTrue(patch_isfile.called)
 
         # does source filename get assigned correctly
         self.assertEqual(oncokb_db.db_source, self.oncokb_io_tsv)
@@ -286,7 +309,11 @@ class DatabaseTest(unittest.TestCase):
         with self.assertRaises(AttributeError):
             oncokb_db.in_database(None, None)
 
-    def test_OncoKBDatabase_lazy_loading(self):
+    @mock.patch('os.path.isfile')
+    def test_OncoKBDatabase_lazy_loading(self, patch_isfile):
+
+        # create patch to pretend that the testing database is a file
+        patch_isfile.return_value = True
 
         # mirroring mini hotspot file instead of mocking
         oncokb_db = OncoKBDB(db_source=self.oncokb_io_tsv, lazy_loading=True)

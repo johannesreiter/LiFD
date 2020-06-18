@@ -8,6 +8,7 @@ from subprocess import Popen, PIPE
 
 from lifd.predictors.predictor import Predictor
 from lifd.utils import add_column, NAN, NT_VAR_COL, FUNC_COL, CT_COL
+from lifd.settings import CHR_COL, POS_START_COL, REF_COL, ALT_COL
 
 __author__ = 'Johannes Reiter'
 __date__ = 'Jan 26, 2019'
@@ -27,6 +28,11 @@ class Cravat(Predictor):
     CP_SCORE_CT_COL = 'CHASMplus_CT_Score'
     CP_CT_COL = 'CHASMplus_CT_Pvalue'
     CP_CT_COL_COR = CP_CT_COL+'_corr'   # p-value corrected for multi-hypotheses testing
+
+    # CHASMplus results section names
+    VAR_ANNO_SEC = 'Variant Annotation'
+    HG19_SEC = 'Hg19'
+    PRED_SEC = 'CHASMplus'
 
     # default q-value significance threshold
     CHASMPLUS_Q_TH = 0.1
@@ -90,9 +96,9 @@ class Cravat(Predictor):
 
         if not os.path.isfile(os.path.abspath(input_fp)):
             Cravat.generate_input_file(
-                input_fp, var_df.iloc[select_indices], chromosome_col='Chromosome',
-                position_col='StartPosition', reference_col='ReferenceAllele',
-                alternate_col='AlternateAllele', subject_col='Subject')
+                input_fp, var_df.iloc[select_indices], chromosome_col=CHR_COL,
+                position_col=POS_START_COL, reference_col=REF_COL,
+                alternate_col=ALT_COL, subject_col='Subject')
         else:
             logger.debug('CRAVAT input file for dataset {} already exists.'.format(ds_name))
 
@@ -123,7 +129,8 @@ class Cravat(Predictor):
         if os.path.exists(output_fp) and os.path.isfile(output_fp):
             if output_fp.endswith('.xlsx'):
 
-                cravat_df = Cravat.read_results(os.path.abspath(output_fp), cancer_type=ct)
+                cravat_df = Cravat.read_results(os.path.abspath(output_fp), cancer_type=ct,
+                                                reference_genome=reference_genome)
                 logger.debug('Read cravat results with {} entries: {}'.format(len(cravat_df), output_fp))
 
                 add_column(var_df, select_indices, NT_VAR_COL, Cravat.CP_COL, cravat_df,
@@ -131,7 +138,7 @@ class Cravat(Predictor):
                 add_column(var_df, select_indices, NT_VAR_COL, Cravat.CP_SCORE_COL, cravat_df,
                            sub_key=Cravat.CP_SCORE_COL, as_float=True)
 
-                if ct=='PANCAN':
+                if ct == 'PANCAN':
                     add_column(var_df, select_indices, NT_VAR_COL, Cravat.CP_CT_COL, cravat_df,
                                sub_key=Cravat.CP_COL, as_float=True)
                     add_column(var_df, select_indices, NT_VAR_COL, Cravat.CP_SCORE_CT_COL, cravat_df,
@@ -162,7 +169,7 @@ class Cravat(Predictor):
                         var_df.iloc[select_indices, :][Cravat.CP_COL].count(), ds_name, len(select_indices))
 
             elif output_fp.endswith('.tsv'):
-                cravat_vars = Cravat.read_results(os.path.abspath(output_fp))
+                cravat_vars = Cravat.read_results(os.path.abspath(output_fp), reference_genome=reference_genome)
 
                 # add CHASM results to the dataframe
                 add_column(var_df, select_indices, NT_VAR_COL, 'Chasm', cravat_vars, sub_key=0, as_float=True)
@@ -178,8 +185,8 @@ class Cravat(Predictor):
         return var_df
 
     @staticmethod
-    def generate_input_file(input_fp, data_df, chromosome_col='Chromosome', position_col='StartPosition',
-                            reference_col='ReferenceAllele', alternate_col='AlternateAllele', var_key_col=NT_VAR_COL,
+    def generate_input_file(input_fp, data_df, chromosome_col=CHR_COL, position_col=POS_START_COL,
+                            reference_col=REF_COL, alternate_col=ALT_COL, var_key_col=NT_VAR_COL,
                             subject_col=None):
 
         """
@@ -266,21 +273,38 @@ class Cravat(Predictor):
             raise RuntimeError('CRAVAT quit with an error: {}'.format(exit_code))
 
     @staticmethod
-    def read_results(cravat_output_fp, cancer_type=None):
+    def read_results(cravat_output_fp, cancer_type=None, reference_genome='hg19'):
         """
         Read Cravat/CHASM results from given filepath
         :param cravat_output_fp: path to cravat results file
         :param cancer_type: cancer type
+        :param reference_genome: human reference genome, e.g. hg19 or hg20
         :return: pandas dataframe
         """
         if os.path.isfile(cravat_output_fp) and cravat_output_fp.endswith('.xlsx'):
 
-            cravat_df = pd.read_excel(cravat_output_fp, sheet_name='Variant', header=1)
+            cravat_df = pd.read_excel(cravat_output_fp, sheet_name='Variant', header=[0, 1])
+
+            # remove multi-level index,
+            # attention because second level column names Chrom and Position exist twice
+            cravat_df.columns = list(
+                map(lambda x: x[1] if x[0] == Cravat.VAR_ANNO_SEC else x[0] + '_' + x[1], cravat_df.columns))
+            # cravat_df.columns = cravat_df.columns.droplevel(0)
+
             # create var_key column and use it as index column
             # var key is <chromosome>__<start position>__<reference allele>__<alternate allele>
-            cravat_df[NT_VAR_COL] = cravat_df.apply(
-                lambda row: '{}__{}__{}__{}'.format(
-                    row['Chrom.1'][3:], row['Position.1'], row['Ref Base'], row['Alt Base']), axis=1) # row['Hg19 Chrom'][3:], row['Hg19 Position'], row['Ref Base'], row['Alt Base']), axis=1)
+            if reference_genome == 'hg19':
+                cravat_df[NT_VAR_COL] = cravat_df.apply(
+                    lambda row: '{}__{}__{}__{}'.format(
+                        row[f'{Cravat.HG19_SEC}_Chrom'][3:], row[f'{Cravat.HG19_SEC}_Position'],
+                        row['Ref Base'], row['Alt Base']), axis=1)
+
+            else:
+                cravat_df[NT_VAR_COL] = cravat_df.apply(
+                    lambda row: '{}__{}__{}__{}'.format(
+                        row['Chrom'][3:], row['Position'], row['Ref Base'], row['Alt Base']), axis=1)
+            # previous versions
+            # row['Chrom.1'][3:], row['Position.1'], row['Ref Base'], row['Alt Base']), axis=1)
             
             # # check for duplicates
             # if len(cravat_df[cravat_df.duplicated(NT_VAR_COL, keep=False)]) > 0:
@@ -291,13 +315,16 @@ class Cravat(Predictor):
 
             cravat_df = cravat_df.set_index(NT_VAR_COL)
 
-            cravat_df.rename(columns={'P-value': Cravat.CP_COL, 'Score': Cravat.CP_SCORE_COL}, inplace=True)
+            cravat_df.rename(columns={f'{Cravat.PRED_SEC}_P-value': Cravat.CP_COL,
+                                      f'{Cravat.PRED_SEC}_Score': Cravat.CP_SCORE_COL}, inplace=True)
             cravat_df[Cravat.CP_COL].replace(to_replace='.', value=NAN, inplace=True)
             cravat_df[Cravat.CP_SCORE_COL].replace(to_replace='.', value=NAN, inplace=True)
 
             if cancer_type is not None and not (isinstance(cancer_type, float) and np.isnan(cancer_type)):
-                cravat_df.rename(columns={'P-value.1': Cravat.CP_CT_COL.replace('CT', cancer_type),
-                                          'Score.1': Cravat.CP_SCORE_CT_COL.replace('CT', cancer_type)}, inplace=True)
+                cravat_df.rename(
+                    columns={f'{Cravat.PRED_SEC} {cancer_type}_P-value': Cravat.CP_CT_COL.replace('CT', cancer_type),
+                             f'{Cravat.PRED_SEC} {cancer_type}_Score': Cravat.CP_SCORE_CT_COL.replace('CT', cancer_type)
+                             }, inplace=True)
 
                 if Cravat.CP_CT_COL.replace('CT', cancer_type) in cravat_df.columns:
                     cravat_df[Cravat.CP_CT_COL.replace('CT', cancer_type)].replace(to_replace='.', value=NAN,

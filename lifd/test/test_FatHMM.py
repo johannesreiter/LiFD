@@ -40,6 +40,7 @@ class FatHMMTest(unittest.TestCase):
             if os.path.exists(output_fp) and os.path.isfile(output_fp):
                 os.remove(output_fp)
 
+    @unittest.skip('FatHMM is no longer support with the new mysql version')
     def test_FatHMMAvailability(self):
 
         # is FatHMM installed?
@@ -52,7 +53,7 @@ class FatHMMTest(unittest.TestCase):
                         f'fathmm.py is not available at expected path {FatHMM.PATH}. '
                         + 'Change location in {}.'.format(os.path.join('src', 'lifd', 'predictors', 'fathmm.py')))
 
-    # @unittest.skip('Not yet implemented')
+    @unittest.skip('FatHMM is no longer support with the new mysql version')
     def test_FatHMM(self):
 
         for sub in self.var_df.Subject.unique():
@@ -86,7 +87,7 @@ class FatHMMTest(unittest.TestCase):
 
                 self.assertEqual(vep_df.loc[VARIANTS[1][FATHMM_KEY_COL]][FatHMM.SCORE_COL], -5.74)
 
-    # @unittest.skip('Not yet implemented')
+    @unittest.skip('FatHMM is no longer support with the new mysql version')
     def test_FatHMM_get_results(self):
 
         # generate input file

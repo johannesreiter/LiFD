@@ -15,17 +15,22 @@ For CGI, LiFD requires “predicted” in its driver classification column and f
 If the majority (>50%) of the methods that produce a valid result predict functionality, LiFD annotates the mutation as likely functional and otherwise as unlikely functional.
 Default reference genome is hg19. Only some of the pooled tools support hg20.
 
+Note: Setting up LiFD with all its dependencies is painful and very time consuming. 
+You may want to focus just on a few tools and databases that are well maintained.
+In our experience, CHASMpluas was easy to install and also performed very well.
+
 ### <a name="releases"> Releases
 * LiFD 0.1.0 2019-08-27: Initial release.
 * LiFD 0.1.1 2020-02-24: Integrated OncoKB upgrade to curl API. Added option to run LiFD from the command line.
+* LiFD 0.1.2 2020-06-18: Minor bug fixes as dependent tools continue to change input/output formats. Updated unittests. FatHMM no longer works with new mysql version.
 
 ### <a name="installation"> Installation and Setup
 1. Install Python 3.6 ([https://www.python.org/downloads](https://www.python.org/downloads)). Check installation with ```which python3.6```. Load Python 3.6 with ```ml python/3.6``` if installing LiFD onto a remote server/cluster.
-2. Install required packages with ```pip install numpy scipy pandas statsmodels xlrd openpyxl xlsxwriter```; NumPy ([http://www.numpy.org](http://www.numpy.org)), SciPy ([http://www.numpy.org](http://www.numpy.org)), pandas ([http://pandas.pydata.org/](http://pandas.pydata.org/)).
 3. Install PyEnsembl (https://github.com/openvax/pyensembl) and Varcode (https://github.com/openvax/varcode), used for mutation effect annotation, with ```pip install pyensembl varcode```. Run ```pyensembl install --release 75 --species human``` to get the latest genome database for hg19/GRCh37.
-4. Open a terminal and clone the repository from GitHub with ```git clone https://github.com/johannesreiter/LiFD.git```
+4. Open a terminal and clone the repository from GitHub with ```git clone https://github.com/johannesreiter/LiFD.git```.
+If you want to have system-wide access, create distribution packages by going into the main folder with cd <LiFD_directory>, run ```python3 setup.py clean sdist bdist_wheel``` and
 and install LiFD to your python environment by running ```pip3.6 install -e <LiFD_directory>```
-5. Test installation by opening a python shell ```python3.6``` and execute these commands ```import lifd``` and ```lifd.__version__```. As output you should get your current LiFD version. Exit the shell with ```exit()```.
+5. Test installation by opening a python shell ```python3.6``` and execute these commands ```import lifd``` and ```lifd.__version__```. As output you should get your current LiFD version. You can also run the unit tests with ```python3 -m unittest discover <LiFD_directory>/```. Exit the shell with ```exit()```.
 
 ### <a name="run_simple"> Running LiFD when functional annotation is provided
 LiFD takes as input either a CSV or an Excel file where the following columns are required for the different methods. 
